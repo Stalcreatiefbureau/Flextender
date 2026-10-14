@@ -98,6 +98,8 @@ function initTabSystem() {
 }
 
 // Initialize Tab System with Autoplay Option
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTabSystem);
+} else {
   initTabSystem();
-});
+}
