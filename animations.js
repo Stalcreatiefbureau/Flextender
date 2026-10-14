@@ -5,7 +5,8 @@
     "css-accordion.js",
     "marquee.js",
     "tab-autoplay.js",
-    "timeline.js"
+    "timeline.js",
+    "reveal-testimonials.js"
   ];
 
   const currentScript = document.currentScript;
