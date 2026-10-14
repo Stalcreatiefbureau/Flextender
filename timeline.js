@@ -122,7 +122,9 @@ function initStepByStepTimeline() {
   });
 }
 
-// Initialize Step-by-tep Timeline
-document.addEventListener("DOMContentLoaded", () => {
+// Initialize Step-by-Step Timeline
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initStepByStepTimeline);
+} else {
   initStepByStepTimeline();
-});
+}
