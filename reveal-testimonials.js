@@ -2,9 +2,11 @@ function initLineRevealTestimonials() {
   const wraps = document.querySelectorAll("[data-testimonial-wrap]");
   if (!wraps.length) return;
 
-  const imageClipHidden = "circle(0% at 50% 50%)";
-  const imageClipVisible = "circle(50% at 50% 50%)";
-  
+  // Inset-wipe voor grote rechthoekige foto's
+  const imageClipVisible   = "inset(0% 0% 0% 0%)";
+  const imageClipHiddenIn  = "inset(100% 0% 0% 0%)"; // start incoming (van onder)
+  const imageClipHiddenOut = "inset(0% 0% 100% 0%)"; // eind outgoing (naar boven)
+
   wraps.forEach((wrap) => {
     const list = wrap.querySelector("[data-testimonial-list]");
     if (!list) return;
@@ -24,28 +26,27 @@ function initLineRevealTestimonials() {
 
     let isAnimating = false;
     let reduceMotion = false;
-    
+
     const autoplayEnabled = wrap.getAttribute("data-autoplay") === "true";
     const autoplayDuration = parseInt(wrap.getAttribute("data-autoplay-duration"), 10) || 4000;
-    
+
     let autoplayCall = null;
     let isInView = true;
 
     const slides = items.map((item) => ({
       item,
       image: item.querySelector("[data-testimonial-img]"),
-      
+
       splitTargets: [
         item.querySelector("[data-testimonial-text]"),
         ...item.querySelectorAll("[data-testimonial-split]"),
       ].filter(Boolean),
-      
+
       splitInstances: [],
-      
+
       getLines() {
         return this.splitInstances.flatMap((instance) => instance.lines);
       },
-      
     }));
 
     function setSlideState(slideIndex, isActive) {
@@ -61,11 +62,11 @@ function initLineRevealTestimonials() {
     function updateCounter() {
       if (elCurrent) elCurrent.textContent = String(activeIndex + 1);
     }
-    
+
     function startAutoplay() {
       if (!autoplayEnabled) return;
       if (autoplayCall) autoplayCall.kill();
-    
+
       autoplayCall = gsap.delayedCall(autoplayDuration / 1000, () => {
         if (!isInView || isAnimating) {
           startAutoplay();
@@ -75,27 +76,27 @@ function initLineRevealTestimonials() {
         startAutoplay();
       });
     }
-    
+
     function pauseAutoplay() {
       if (autoplayCall) autoplayCall.pause();
     }
-    
+
     function resumeAutoplay() {
       if (!autoplayEnabled) return;
       if (!autoplayCall) startAutoplay();
       else autoplayCall.resume();
     }
-    
+
     function resetAutoplay() {
       if (!autoplayEnabled) return;
       startAutoplay();
     }
 
-    // Set initial state
+    // Initiële staat
     slides.forEach((_, i) => setSlideState(i, i === activeIndex));
     updateCounter();
 
-    // Handle reduced motion preference
+    // Reduced motion
     gsap.matchMedia().add(
       { reduce: "(prefers-reduced-motion: reduce)" },
       (context) => {
@@ -103,7 +104,7 @@ function initLineRevealTestimonials() {
       }
     );
 
-    // Create SplitText instances
+    // SplitText instances
     slides.forEach((slide, slideIndex) => {
       slide.splitInstances = slide.splitTargets.map((el) =>
         SplitText.create(el, {
@@ -119,7 +120,7 @@ function initLineRevealTestimonials() {
 
             if (slide.image) {
               gsap.set(slide.image, {
-                clipPath: isActive ? imageClipVisible : imageClipHidden,
+                clipPath: isActive ? imageClipVisible : imageClipHiddenIn,
               });
             }
           },
@@ -145,19 +146,19 @@ function initLineRevealTestimonials() {
       });
 
       if (reduceMotion) {
-        tl.to(outgoingSlide.item, { 
-            autoAlpha: 0,
-            duration: 0.4,
-            ease: "power2"
-          }, 0)
-          .fromTo(incomingSlide.item, {
-            autoAlpha: 0
-          }, {
-            autoAlpha: 1,
-            duration: 0.4,
-            ease: "power2"
-          }, 0);
-          
+        tl.to(outgoingSlide.item, {
+          autoAlpha: 0,
+          duration: 0.4,
+          ease: "power2",
+        }, 0)
+        .fromTo(incomingSlide.item, {
+          autoAlpha: 0,
+        }, {
+          autoAlpha: 1,
+          duration: 0.4,
+          ease: "power2",
+        }, 0);
+
         return;
       }
 
@@ -166,9 +167,11 @@ function initLineRevealTestimonials() {
 
       gsap.set(incomingSlide.item, { autoAlpha: 1, pointerEvents: "auto" });
       gsap.set(incomingLines, { yPercent: 110 });
-  
-      if (outgoingSlide.image) gsap.set(outgoingSlide.image, { clipPath: imageClipVisible });
 
+      if (outgoingSlide.image) gsap.set(outgoingSlide.image, { clipPath: imageClipVisible });
+      if (incomingSlide.image) gsap.set(incomingSlide.image, { clipPath: imageClipHiddenIn });
+
+      // Outgoing tekst
       tl.to(outgoingLines, {
         yPercent: -110,
         duration: 0.6,
@@ -176,35 +179,49 @@ function initLineRevealTestimonials() {
         stagger: { amount: 0.25 },
       }, 0);
 
+      // Outgoing foto: sluit naar boven
       if (outgoingSlide.image) {
         tl.to(outgoingSlide.image, {
-          clipPath: imageClipHidden,
-          duration: 0.6,
+          clipPath: imageClipHiddenOut,
+          duration: 0.8,
           ease: "power4.inOut",
         }, 0);
       }
 
+      // Incoming foto: opent van onder, met subtiele zoom
+      if (incomingSlide.image) {
+        tl.fromTo(incomingSlide.image, {
+          clipPath: imageClipHiddenIn,
+        }, {
+          clipPath: imageClipVisible,
+          duration: 0.9,
+          ease: "power4.inOut",
+        }, 0.1);
+
+        const img = incomingSlide.image.querySelector("img");
+        if (img) {
+          tl.fromTo(img, {
+            scale: 1.15,
+          }, {
+            scale: 1,
+            duration: 1.2,
+            ease: "power3.out",
+          }, 0.1);
+        }
+      }
+
+      // Incoming tekst
       tl.to(incomingLines, {
         yPercent: 0,
         duration: 0.7,
         ease: "power4.inOut",
         stagger: { amount: 0.4 },
-      }, ">-=0.3");
-
-      if (incomingSlide.image) {
-        tl.fromTo(incomingSlide.image, {
-          clipPath: imageClipHidden,
-        }, {
-          clipPath: imageClipVisible,
-          duration: 0.75,
-          ease: "power4.inOut",
-        }, "<");
-      }
+      }, 0.3);
 
       tl.set(outgoingSlide.item, { autoAlpha: 0 }, ">");
     }
-  
-    // Start autoplay on the wrap (only works if autoplay is set to 'true')
+
+    // Autoplay (alleen als data-autoplay="true")
     startAutoplay();
 
     if (btnNext) {
@@ -213,44 +230,42 @@ function initLineRevealTestimonials() {
         goTo((activeIndex + 1) % slides.length);
       });
     }
-    
+
     if (btnPrev) {
       btnPrev.addEventListener("click", () => {
         resetAutoplay();
         goTo((activeIndex - 1 + slides.length) % slides.length);
       });
     }
-        
+
     function onKeyDown(e) {
       if (!isInView) return;
-    
-      // Don't hijack arrow keys while user is typing.
+
       const t = e.target;
       const isTypingTarget =
         t &&
         (t.tagName === "INPUT" ||
           t.tagName === "TEXTAREA" ||
           t.isContentEditable);
-    
+
       if (isTypingTarget) return;
-    
+
       if (e.key === "ArrowRight") {
         e.preventDefault();
         resetAutoplay();
         goTo((activeIndex + 1) % slides.length);
       }
-    
+
       if (e.key === "ArrowLeft") {
         e.preventDefault();
         resetAutoplay();
         goTo((activeIndex - 1 + slides.length) % slides.length);
       }
     }
-    
-    // Listen for left/right arrows
+
     window.addEventListener("keydown", onKeyDown);
-    
-    // Enable/disable keyboard + autoplay depending on scroll position
+
+    // Keyboard + autoplay alleen als de sectie in beeld is
     ScrollTrigger.create({
       trigger: wrap,
       start: "top bottom",
@@ -272,13 +287,12 @@ function initLineRevealTestimonials() {
         pauseAutoplay();
       },
     });
-    
   });
 }
 
-// Initialize Line Reveal Testimonials
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initLineRevealTestimonials);
+// Initialiseren
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initLineRevealTestimonials);
 } else {
   initLineRevealTestimonials();
 }
