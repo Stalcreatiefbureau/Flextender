@@ -1,4 +1,6 @@
 (function () {
+  console.log("🚀 Flextender gestart!");
+
   const scripts = [
     "css-accordion.js",
     "marquee.js",
@@ -6,21 +8,30 @@
     "timeline.js"
   ];
 
-  const baseUrl = new URL("./", document.currentScript.src);
+  const currentScript = document.currentScript;
 
-  async function loadScripts() {
-    for (const script of scripts) {
-      await new Promise((resolve, reject) => {
-        const element = document.createElement("script");
-
-        element.src = new URL(script, baseUrl).href;
-        element.onload = resolve;
-        element.onerror = reject;
-
-        document.body.appendChild(element);
-      });
-    }
+  if (!currentScript) {
+    console.error("Flextender: currentScript ontbreekt");
+    return;
   }
 
-  loadScripts().catch(console.error);
+  const baseUrl = new URL("./", currentScript.src);
+
+  console.log("Flextender URL:", baseUrl.href);
+
+  scripts.forEach((script) => {
+    const element = document.createElement("script");
+
+    element.src = new URL(script, baseUrl).href;
+
+    element.onload = () => {
+      console.log("✅ Geladen:", script);
+    };
+
+    element.onerror = () => {
+      console.error("❌ Niet geladen:", script);
+    };
+
+    document.body.appendChild(element);
+  });
 })();
