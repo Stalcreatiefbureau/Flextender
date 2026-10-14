@@ -80,6 +80,8 @@ function initMarqueeScrollDirection() {
 }
 
 // Initialize Marquee with Scroll Direction
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMarqueeScrollDirection);
+} else {
   initMarqueeScrollDirection();
-});
+}
