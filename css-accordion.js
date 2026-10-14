@@ -23,6 +23,8 @@
 }
 
 // Initialize Accordion CSS
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAccordionCSS);
+} else {
   initAccordionCSS();
-});
+}
