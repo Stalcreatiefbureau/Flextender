@@ -277,6 +277,8 @@ function initLineRevealTestimonials() {
 }
 
 // Initialize Line Reveal Testimonials
-document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLineRevealTestimonials);
+} else {
   initLineRevealTestimonials();
-});
+}
