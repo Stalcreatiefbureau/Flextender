@@ -1,5 +1,4 @@
-<script>
-  function initBouncyContentTabs() {
+function initBouncyContentTabs() {
   // Rustige, zakelijke timing: geen overshoot, geen squash
   const config = {
     travel: 0.45,      // duur van de indicator-beweging
@@ -303,4 +302,3 @@ if (document.readyState === "loading") {
 } else {
   initHeroGalleryExpand();
 }
-</script>
