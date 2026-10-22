@@ -2,11 +2,13 @@
   console.log("🚀 Flextender gestart!");
 
   const scripts = [
+    "navbar.js",
     "css-accordion.js",
     "marquee.js",
     "tab-autoplay.js",
     "timeline.js",
-    "reveal-testimonials.js"
+    "reveal-testimonials.js",
+    "tab-slider.js",
   ];
 
   const currentScript = document.currentScript;
