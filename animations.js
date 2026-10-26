@@ -8,7 +8,8 @@
     "tab-autoplay.js",
     "timeline.js",
     "reveal-testimonials.js",
-    "tab-slider.js"
+    "tab-slider.js",
+    "image-hero-scroll.js"
   ];
 
   const currentScript = document.currentScript;
