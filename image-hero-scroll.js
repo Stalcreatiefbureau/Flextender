@@ -37,6 +37,8 @@ function initHeroGalleryAnimation() {
 }
 
 // Initialize Hero Gallery Animation
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initHeroGalleryAnimation);
+} else {
   initHeroGalleryAnimation();
-});
+}
