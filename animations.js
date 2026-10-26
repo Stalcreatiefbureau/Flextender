@@ -9,7 +9,8 @@
     "timeline.js",
     "reveal-testimonials.js",
     "tab-slider.js",
-    "image-hero-scroll.js"
+    "image-hero-scroll.js",
+    "basic-filter.js"
   ];
 
   const currentScript = document.currentScript;
