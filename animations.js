@@ -3,6 +3,7 @@
 
   const scripts = [
     "navbar.js",
+    "directional-marquee.js",
     "marquee.js",
     "css-accordion.js",
     "tab-autoplay.js",
