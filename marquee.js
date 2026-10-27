@@ -1,87 +1,197 @@
-function initMarqueeScrollDirection() {
-  document.querySelectorAll('[data-marquee-scroll-direction-target]').forEach((marquee) => {
-    // Query marquee elements
-    const marqueeContent = marquee.querySelector('[data-marquee-collection-target]');
-    const marqueeScroll = marquee.querySelector('[data-marquee-scroll-target]');
-    if (!marqueeContent || !marqueeScroll) return;
+function initDraggableMarquee() {
+  // Check GSAP dependencies
+  if (
+    typeof gsap === "undefined" ||
+    typeof Observer === "undefined" ||
+    typeof ScrollTrigger === "undefined"
+  ) {
+    console.warn("Draggable Marquee: GSAP, Observer or ScrollTrigger is missing.");
+    return;
+  }
 
-    // Get data attributes
-    const { marqueeSpeed: speed, marqueeDirection: direction, marqueeDuplicate: duplicate, marqueeScrollSpeed: scrollSpeed } = marquee.dataset;
+  gsap.registerPlugin(Observer, ScrollTrigger);
 
-    // Convert data attributes to usable types
-    const marqueeSpeedAttr = parseFloat(speed);
-    const marqueeDirectionAttr = direction === 'right' ? 1 : -1; // 1 for right, -1 for left
-    const duplicateAmount = parseInt(duplicate || 0);
-    const scrollSpeedAttr = parseFloat(scrollSpeed);
-    const speedMultiplier = window.innerWidth < 479 ? 0.25 : window.innerWidth < 991 ? 0.5 : 1;
+  const wrappers = document.querySelectorAll(
+    "[data-draggable-marquee-init]"
+  );
 
-    let marqueeSpeed = marqueeSpeedAttr * (marqueeContent.offsetWidth / window.innerWidth) * speedMultiplier;
+  const getNumberAttr = (el, name, fallback) => {
+    const value = parseFloat(el.getAttribute(name));
+    return Number.isFinite(value) ? value : fallback;
+  };
 
-    // Precompute styles for the scroll container
-    marqueeScroll.style.marginLeft = `${scrollSpeedAttr * -1}%`;
-    marqueeScroll.style.width = `${(scrollSpeedAttr * 2) + 100}%`;
-
-    // Duplicate marquee content
-    if (duplicateAmount > 0) {
-      const fragment = document.createDocumentFragment();
-      for (let i = 0; i < duplicateAmount; i++) {
-        fragment.appendChild(marqueeContent.cloneNode(true));
-      }
-      marqueeScroll.appendChild(fragment);
+  wrappers.forEach((wrapper) => {
+    if (
+      wrapper.getAttribute("data-draggable-marquee-init") === "initialized"
+    ) {
+      return;
     }
 
-    // GSAP animation for marquee content
-    const marqueeItems = marquee.querySelectorAll('[data-marquee-collection-target]');
-    const animation = gsap.to(marqueeItems, {
-      xPercent: -100, // Move completely out of view
+    const collection = wrapper.querySelector(
+      "[data-draggable-marquee-collection]"
+    );
+
+    const list = wrapper.querySelector(
+      "[data-draggable-marquee-list]"
+    );
+
+    if (!collection || !list) return;
+
+    const duration = Math.max(
+      0.1,
+      getNumberAttr(wrapper, "data-duration", 20)
+    );
+
+    const multiplier = Math.max(
+      0,
+      getNumberAttr(wrapper, "data-multiplier", 40)
+    );
+
+    const sensitivity = getNumberAttr(
+      wrapper,
+      "data-sensitivity",
+      0.01
+    );
+
+    const wrapperWidth = wrapper.getBoundingClientRect().width;
+    const listWidth = list.scrollWidth || list.getBoundingClientRect().width;
+
+    if (!wrapperWidth || !listWidth) return;
+
+    // Duplicate items until marquee fills the available space
+    const minRequiredWidth = wrapperWidth + listWidth + 2;
+
+    while (collection.scrollWidth < minRequiredWidth) {
+      const listClone = list.cloneNode(true);
+
+      listClone.setAttribute("data-draggable-marquee-clone", "");
+      listClone.setAttribute("aria-hidden", "true");
+
+      collection.appendChild(listClone);
+    }
+
+    const wrapX = gsap.utils.wrap(-listWidth, 0);
+
+    gsap.set(collection, { x: 0 });
+
+    const marqueeLoop = gsap.to(collection, {
+      x: -listWidth,
+      duration,
+      ease: "none",
       repeat: -1,
-      duration: marqueeSpeed,
-      ease: 'linear'
-    }).totalProgress(0.5);
 
-    // Initialize marquee in the correct direction
-    gsap.set(marqueeItems, { xPercent: marqueeDirectionAttr === 1 ? 100 : -100 });
-    animation.timeScale(marqueeDirectionAttr); // Set correct direction
-    animation.play(); // Start animation immediately
+      modifiers: {
+        x: (x) => wrapX(parseFloat(x)) + "px"
+      }
+    });
 
-    // Set initial marquee status
-    marquee.setAttribute('data-marquee-status', 'normal');
+    // Initial direction
+    const initialDirectionAttr = (
+      wrapper.getAttribute("data-direction") || "left"
+    ).toLowerCase();
 
-    // ScrollTrigger logic for direction inversion
+    const baseDirection =
+      initialDirectionAttr === "right" ? -1 : 1;
+
+    const timeScale = {
+      value: baseDirection
+    };
+
+    if (baseDirection < 0) {
+      marqueeLoop.progress(1);
+    }
+
+    function applyTimeScale() {
+      marqueeLoop.timeScale(timeScale.value);
+
+      wrapper.setAttribute(
+        "data-direction",
+        timeScale.value < 0 ? "right" : "left"
+      );
+    }
+
+    applyTimeScale();
+
+    // Drag interaction
+    const marqueeObserver = Observer.create({
+      target: wrapper,
+      type: "pointer,touch",
+      preventDefault: true,
+      debounce: false,
+
+      onChangeX: (observerEvent) => {
+        let velocityTimeScale =
+          observerEvent.velocityX * -sensitivity;
+
+        velocityTimeScale = gsap.utils.clamp(
+          -multiplier,
+          multiplier,
+          velocityTimeScale
+        );
+
+        gsap.killTweensOf(timeScale);
+
+        const restingDirection =
+          velocityTimeScale < 0 ? -1 : 1;
+
+        gsap.timeline({
+          onUpdate: applyTimeScale
+        })
+          .to(timeScale, {
+            value: velocityTimeScale,
+            duration: 0.1,
+            overwrite: true
+          })
+          .to(timeScale, {
+            value: restingDirection,
+            duration: 1
+          });
+      }
+    });
+
+    // Pause when outside viewport
     ScrollTrigger.create({
-      trigger: marquee,
-      start: 'top bottom',
-      end: 'bottom top',
-      onUpdate: (self) => {
-        const isInverted = self.direction === 1; // Scrolling down
-        const currentDirection = isInverted ? -marqueeDirectionAttr : marqueeDirectionAttr;
+      trigger: wrapper,
+      start: "top bottom",
+      end: "bottom top",
 
-        // Update animation direction and marquee status
-        animation.timeScale(currentDirection);
-        marquee.setAttribute('data-marquee-status', isInverted ? 'normal' : 'inverted');
+      onEnter: () => {
+        marqueeLoop.resume();
+        applyTimeScale();
+        marqueeObserver.enable();
+      },
+
+      onEnterBack: () => {
+        marqueeLoop.resume();
+        applyTimeScale();
+        marqueeObserver.enable();
+      },
+
+      onLeave: () => {
+        marqueeLoop.pause();
+        marqueeObserver.disable();
+      },
+
+      onLeaveBack: () => {
+        marqueeLoop.pause();
+        marqueeObserver.disable();
       }
     });
 
-    // Extra speed effect on scroll
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: marquee,
-        start: '0% 100%',
-        end: '100% 0%',
-        scrub: 0
-      }
-    });
-
-    const scrollStart = marqueeDirectionAttr === -1 ? scrollSpeedAttr : -scrollSpeedAttr;
-    const scrollEnd = -scrollStart;
-
-    tl.fromTo(marqueeScroll, { x: `${scrollStart}vw` }, { x: `${scrollEnd}vw`, ease: 'none' });
+    wrapper.setAttribute(
+      "data-draggable-marquee-init",
+      "initialized"
+    );
   });
 }
 
-// Initialize Marquee with Scroll Direction
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initMarqueeScrollDirection);
+// Initialize when DOM is ready, including dynamically loaded scripts
+if (document.readyState === "loading") {
+  document.addEventListener(
+    "DOMContentLoaded",
+    initDraggableMarquee,
+    { once: true }
+  );
 } else {
-  initMarqueeScrollDirection();
+  initDraggableMarquee();
 }
