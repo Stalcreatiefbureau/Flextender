@@ -5,7 +5,7 @@
     "navbar.js",
     "hero-reveal.js",
     "directional-marquee.js",
-    "marquee.js",
+    "draggable-marquee.js",
     "tab-slider.js",
     "css-accordion.js",
     "tab-autoplay.js",
