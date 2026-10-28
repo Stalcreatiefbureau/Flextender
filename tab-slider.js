@@ -238,7 +238,8 @@ function initBouncyContentTabs() {
   });
 }
 
-// Initialiseren
-document.addEventListener("DOMContentLoaded", () => {
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initBouncyContentTabs);
+} else {
   initBouncyContentTabs();
-});
+}
