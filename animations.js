@@ -5,11 +5,11 @@
     "navbar.js",
     "directional-marquee.js",
     "marquee.js",
+    "tab-slider.js",
     "css-accordion.js",
     "tab-autoplay.js",
     "timeline.js",
     "reveal-testimonials.js",
-    "tab-slider.js",
     "image-hero-scroll.js",
     "basic-filter.js"
   ];
