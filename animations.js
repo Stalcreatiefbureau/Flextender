@@ -4,6 +4,7 @@
   const scripts = [
     "navbar.js",
     "hero-reveal.js",
+    "whitepaper-logic.js",
     "directional-marquee.js",
     "draggable-marquee.js",
     "tab-slider.js",
