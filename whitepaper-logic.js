@@ -8,7 +8,7 @@
  * - Finsweet Load More
  *
  * Attributes:
- * [data-download-link]  → Download link inside .w-form-done
+ * [data-download-link]  → Download link inside .w-form (typically .w-form-done)
  * [data-business-email] → Optional attribute on form
  */
 
@@ -46,15 +46,10 @@
   if (window.flxDownloadInitialized) return;
   window.flxDownloadInitialized = true;
 
-  /**
-   * Check whether form belongs to a download block
-   */
-  function isDownloadForm(form) {
-    const block = form.closest(".w-form");
-
-    return !!block?.querySelector(
-      ".w-form-done [data-download-link]"
-    );
+  function getDownloadLink(block, done) {
+    if (!done) return null;
+    return done.querySelector("[data-download-link]") ||
+      block.querySelector("[data-download-link]");
   }
 
   /**
@@ -64,13 +59,10 @@
     "submit",
     function (event) {
       const form = event.target;
+      if (!(form instanceof HTMLFormElement)) return;
 
-      if (
-        !(form instanceof HTMLFormElement) ||
-        !isDownloadForm(form)
-      ) {
-        return;
-      }
+      const block = form.closest(".w-form");
+      if (!getDownloadLink(block, block?.querySelector(".w-form-done"))) return;
 
       const email = form.querySelector(
         'input[type="email"]'
@@ -120,67 +112,6 @@
   });
 
   /**
-   * Get clean filename from URL
-   */
-  function getFileName(url) {
-    try {
-      const pathname = new URL(url, window.location.href).pathname;
-
-      const filename =
-        decodeURIComponent(pathname.split("/").pop()) ||
-        "download";
-
-      return filename.replace(/^[a-f0-9]{24}_/i, "");
-    } catch {
-      return "download";
-    }
-  }
-
-  /**
-   * Download file without leaving current page
-   */
-  async function downloadFile(url) {
-    try {
-      const response = await fetch(url, {
-        mode: "cors"
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Download failed: ${response.status}`
-        );
-      }
-
-      const blob = await response.blob();
-
-      const objectURL = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-
-      link.href = objectURL;
-      link.download = getFileName(url);
-
-      document.body.appendChild(link);
-
-      link.click();
-      link.remove();
-
-      setTimeout(() => {
-        URL.revokeObjectURL(objectURL);
-      }, 10000);
-
-    } catch (error) {
-      // Fallback for files that don't allow CORS
-      console.warn(
-        "Flextender Download: opening file directly.",
-        error
-      );
-
-      window.location.href = url;
-    }
-  }
-
-  /**
    * Initialize download forms
    */
   function initFormDownload(scope = document) {
@@ -203,16 +134,17 @@
       }
 
       const done = block.querySelector(".w-form-done");
+      const link = getDownloadLink(block, done);
+      const href = link?.getAttribute("href")?.trim();
+      if (!href || href.startsWith("#")) return;
 
-      const link = done?.querySelector(
-        "[data-download-link]"
-      );
-
-      if (!done || !link) return;
-
-      const url = link.getAttribute("href");
-
-      if (!url || url === "#") return;
+      let url;
+      try {
+        url = new URL(href, document.baseURI);
+      } catch {
+        return;
+      }
+      if (url.protocol !== "https:" && url.protocol !== "http:") return;
 
       // Mark initialized
       block.dataset.downloadReady = "true";
@@ -236,7 +168,7 @@
 
         observer.disconnect();
 
-        downloadFile(url);
+        window.location.href = url.href;
       });
 
       observer.observe(done, {
