@@ -3,6 +3,7 @@
 
   const scripts = [
     "navbar.js",
+    "topbar-announcements.js",
     "anchor-scroll.js",
     "hero-reveal.js",
     "whitepaper-logic.js",
