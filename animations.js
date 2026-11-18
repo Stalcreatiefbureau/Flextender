@@ -15,7 +15,8 @@
     "timeline.js",
     "reveal-testimonials.js",
     "image-hero-scroll.js",
-    "basic-filter.js"
+    "basic-filter.js",
+    "vacancy-count.js"
   ];
 
   const currentScript = document.currentScript;
